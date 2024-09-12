@@ -292,424 +292,405 @@
     </script> -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
-    var Toast
-    $(document).ready(() => {
-      // $.LoadingOverlay("show");
-      Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 1500,
-        timerProgressBar: true,
-      })
-      main()
-      // flex2html('testflex', JSON.parse(testflex))
-    })
-    function copy(id = 'json-code') {
-      let $temp = $('<input>')
-      $('body').append($temp)
-      let element = document.getElementById(id)
-      element.select()
-      element.setSelectionRange(0, 99999)
-      navigator.clipboard.writeText(element.value).then(() => {
-        $temp.remove()
-        Toast.fire({
-          icon: 'success',
-          title: 'คัดลอกเรียบร้อย'
-        })
-      }, () => {
-        $temp.remove()
-        Toast.fire({
-          icon: 'error',
-          title: 'คัดลอกล้มเหลว'
-        })
-      })
+var profile, flexlist, flexid = undefined;
+var scripturl = 'https://script.google.com/macros/s/AKfycbzDrVrPPTbKHKTySkUHxwc2DclT8-tZvzRi8abRYyhDgT98YQTlpE9DsZ3jtNeg1xIO/exec';
+var starttime = new Date().getTime();
+var Toast;
 
-    }
-  </script>
-  <script>
-   var profile, flexlist, flexid = undefined
-var scripturl = 'https://script.google.com/macros/s/AKfycbzDrVrPPTbKHKTySkUHxwc2DclT8-tZvzRi8abRYyhDgT98YQTlpE9DsZ3jtNeg1xIO/exec'
-var starttime = new Date().getTime()
+$(document).ready(() => {
+  Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 1500,
+    timerProgressBar: true,
+  });
+  main();
+});
+
 async function main() {
   liff.init({
-    liffId: '2005615503-Gxyb3Yw9', withLoginOnExternalBrowser: true
+    liffId: '2005615503-Gxyb3Yw9',
+    withLoginOnExternalBrowser: true
   });
 
   liff.ready.then(async () => {
-    // if loader show less than 3 sec then wait 3 sec
-    let endtime = new Date().getTime()
-    let waittime = 3000 - (endtime - starttime)
+    let endtime = new Date().getTime();
+    let waittime = 3000 - (endtime - starttime);
     if (waittime > 0) {
-      await new Promise(resolve => setTimeout(resolve, waittime))
+      await new Promise(resolve => setTimeout(resolve, waittime));
     }
 
-    console.log('liff ready')
+    console.log('liff ready');
     if (liff.isLoggedIn()) {
-      var parameter = new URLSearchParams(window.location.search)
-      flexid = parameter.get('s')
+      var parameter = new URLSearchParams(window.location.search);
+      flexid = parameter.get('s');
       if (flexid) {
         $.post(scripturl, {
           q: 'getflex',
-          id: parameter.get('s')
+          id: flexid
         }).done(function (result) {
           if (result.flex) {
-            $('#loader').hide()
-            $('#json').val(JSON.stringify(JSON.parse(result.flex), undefined, 4))
-            $('#altText').val(result.altText)
-            $('#shared').click()
+            $('#loader').hide();
+            $('#json').val(JSON.stringify(JSON.parse(result.flex), undefined, 4));
+            $('#altText').val(result.altText);
+            $('#shared').click();
           } else {
-            $('section').remove()
-            $('.modal').remove()
-            $('#loader').hide()
-            Swal.fire({
-              icon: 'error',
-              title: 'เกิดข้อผิดพลาด',
-              text: 'ไม่พบข้อมูล Flex ที่คุณต้องการ',
-              allowOutsideClick: false,
-              showConfirmButton: true,
-              confirmButtonText: 'ปิดหน้านี้',
-            }).then(() => {
-              liff.closeWindow()
-            })
+            showError('ไม่พบข้อมูล Flex ที่คุณต้องการ');
           }
-        })
+        });
       } else {
-        flexid = undefined
-        $('#loader').hide()
+        flexid = undefined;
+        $('#loader').hide();
         $('#login-sec').removeClass('d-flex').hide();
         $('#input-sec').slideDown(200);
-        let context = await liff.getContext()
+        let context = await liff.getContext();
         if (context.type == 'square_chat') {
-          profile = { displayName: 'openchat', userId: context.squareMemberId, isSquare: true }
-        } else profile = await liff.getProfile();
+          profile = { displayName: 'openchat', userId: context.squareMemberId, isSquare: true };
+        } else {
+          profile = await liff.getProfile();
+        }
         $('#displayName').html(profile.displayName);
         $('#display-img').attr('src', profile.pictureUrl);
         if (liff.isInClient() || liff.getContext().type === 'square_chat') {
           $('#send').slideDown(200);
         }
-        getFlex()
+        getFlex();
       }
-    }
-    else {
-      $('#loader').hide()
+    } else {
+      $('#loader').hide();
       $('#login-sec div').slideDown(200);
       $('#login-btn').click(function () {
         liff.login({ redirectUri: window.location.href });
-      })
+      });
     }
-  })
+  });
 }
-  </script>
-  <script>
-    $('#altText').on('input', function () {
-      let text = $(this).val()
-      $('#text-count').text(`(${text.length}/400)`)
-    })
-    $('#json').on('input', function () {
-      if ($(this).val() == '') {
-        $('#flex-show').html('<div class="text-light w-100 text-center my-3">พื้นที่แสดงตัวอย่าง Flex จะปรากฏที่นี่</div>')
-        return false
-      }
-      let json = getJSON(true)
-      if (json) {
-        $('#flex-show').html('')
-        flex2html('flex-show', json)
-        // get action from json tree
-        // let actions = getAction(json)
-      } else {
-        $('#flex-show').html(`<div style="color: white; font-size: 1rem; text-align: center; padding-top: 20px">
-                        Invalid JSON
-                    </div>`)
-      }
-    })
-    $('#preview').click(function () {
-      let flex = getJSON()
-      if (flex) {
-        $('#flex1').html('');
-        flex2html("flex1", flex);
-        $('.modal').modal('show');
-      }
-    })
-    $('#shared').click(function () {
-      var flex = getJSON()
-      if (flex) {
-        if (JSON.stringify(flex).indexOf('{{share}}') > -1 && !flexid) {
-          Swal.fire({
-            icon: 'error',
-            title: 'หากกำหนดให้มีคีย์เวิร์ด share คุณจำเป็นที่จะต้องบันทึก Flex นี้ก่อนการแชร์',
-          })
-          return false
-        }
-        sendShare(flex);
-      }
-    })
-    $('#send').click(function () {
-      var flex = getJSON()
-      if (flex) {
-        if (JSON.stringify(flex).indexOf('{{share}}') > -1 && !flexid) {
-          Swal.fire({
-            icon: 'error',
-            title: 'หากกำหนดให้มีคีย์เวิร์ด share คุณจำเป็นที่จะต้องบันทึก Flex นี้ก่อนการแชร์',
-          })
-          return false
-        }
-        sendInChat(flex);
-      }
-    })
-    $('#save').click(function () {
-      let flex = getJSON()
-      if (flex) {
-        Swal.fire({
-          title: 'กรุณาใส่ชื่อ FLEX',
-          input: 'text',
-          inputAttributes: {
-            autocapitalize: 'off'
-          },
-          showCancelButton: true,
-          confirmButtonText: 'Save',
-          showLoaderOnConfirm: true,
-          preConfirm: (templateName) => {
-            return $.post(scripturl, {
-              q: 'put',
-              isSquare: profile.isSquare,
-              name: templateName,
-              flex: JSON.stringify(flex),
-              uid: profile.userId,
-              liff_id: liff.id
-            })
-          },
-          allowOutsideClick: () => !Swal.isLoading()
-        }).then((output) => {
-          if (output.value.result == 'duplicate') {
-            return Swal.fire({
-              icon: 'warning',
-              title: 'Oops...',
-              text: 'ชื่อซ้ำ',
-              showConfirmButton: false,
-              timer: 1500
-            })
-          }
-          let item = output.value.data
-          let row = $('.listtemplate').clone()
-          $(row).removeClass('hide listtemplate')
-          $(row).attr('id', item[0])
-          $(row).find('.btn-head').text(item[1])
-          $(row).find('.show-preview').append(`<p style="display: none">${item[2]}</p>`);
-          $(row).find('.delete-list').attr('id', item[0])
-          $(row).find('.show-json').append(`<p style="display: none">${item[2]}</p>`);
-          $(row).find('.share-link').attr('data-clipboard-text', 'https://liff.line.me/' + liff.getContext().liffId + '?s=' + item[0])
-          $('#json').val(JSON.stringify(JSON.parse(item[2]), undefined, 4))
-          $('#flexlist').append(row)
-          setButtonEventListener()
-          Swal.fire({
-            icon: 'success',
-            title: 'บันทึกเรียบร้อย',
-            showConfirmButton: false,
-            timer: 1500
-          })
-        })
-      }
-    })
-    function update(id) {
-      let flex
-      try {
-        flex = JSON.parse($('#flex1').find('textarea').val())
-      } catch (error) {
-        console.log(error)
-        Swal.fire({
-          icon: 'error',
-          title: 'Oops...',
-          text: 'Invalid JSON'
-        })
-        return false
-      }
-      if (flex) {
-        Swal.fire({
-          icon: 'info',
-          title: 'กำลังอัพเดท JSON...',
-          text: 'กรุณารอสักครู่',
-          allowOutsideClick: false,
-        })
-        Swal.showLoading(Swal.getConfirmButton());
-        $.post(scripturl, {
-          q: 'update',
+
+function getFlex() {
+  $('#flexlist').LoadingOverlay("show");
+  let uid = profile.userId;
+  
+  $.post(scripturl, {
+    q: 'get',
+    isSquare: profile.isSquare,
+    uid: uid
+  }).done(function (result) {
+    $('#flexlist').LoadingOverlay("hide");
+    if (result.status != 200) {
+      return true;
+    }
+    flexlist = result.data;
+    
+    if (flexlist.length > 0) {
+      $('#flexlist').html('');
+      flexlist.forEach(function (item) {
+        let row = createFlexListItem(item);
+        $('#flexlist').append(row);
+      });
+    } else {
+      $('#flexlist').css('height', '100%');
+    }
+    setButtonEventListener();
+  });
+}
+
+function createFlexListItem(item) {
+  let row = $('.listtemplate').clone();
+  $(row).removeClass('hide listtemplate');
+  $(row).attr('id', item.flex_id);
+  $(row).find('.btn-head').text(item.name);
+  $(row).find('.show-preview').append(`<p style="display: none">${item.flex}</p>`);
+  $(row).find('.delete-list').attr('id', item.flex_id);
+  $(row).find('.show-json').append(`<p style="display: none">${item.flex}</p>`);
+  $(row).find('.share-link').attr('data-clipboard-text', 'https://liff.line.me/' + liff.id + '?s=' + item.flex_id);
+  return row;
+}
+
+function showError(message) {
+  $('section').remove();
+  $('.modal').remove();
+  $('#loader').hide();
+  Swal.fire({
+    icon: 'error',
+    title: 'เกิดข้อผิดพลาด',
+    text: message,
+    allowOutsideClick: false,
+    showConfirmButton: true,
+    confirmButtonText: 'ปิดหน้านี้',
+  }).then(() => {
+    liff.closeWindow();
+  });
+}
+
+function copy(id = 'json-code') {
+  let $temp = $('<input>');
+  $('body').append($temp);
+  let element = document.getElementById(id);
+  element.select();
+  element.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(element.value).then(() => {
+    $temp.remove();
+    Toast.fire({
+      icon: 'success',
+      title: 'คัดลอกเรียบร้อย'
+    });
+  }, () => {
+    $temp.remove();
+    Toast.fire({
+      icon: 'error',
+      title: 'คัดลอกล้มเหลว'
+    });
+  });
+}
+
+$('#altText').on('input', function () {
+  let text = $(this).val();
+  $('#text-count').text(`(${text.length}/400)`);
+});
+
+$('#json').on('input', function () {
+  if ($(this).val() == '') {
+    $('#flex-show').html('<div class="text-light w-100 text-center my-3">พื้นที่แสดงตัวอย่าง Flex จะปรากฏที่นี่</div>');
+    return false;
+  }
+  let json = getJSON(true);
+  if (json) {
+    $('#flex-show').html('');
+    flex2html('flex-show', json);
+  } else {
+    $('#flex-show').html(`<div style="color: white; font-size: 1rem; text-align: center; padding-top: 20px">
+                    Invalid JSON
+                </div>`);
+  }
+});
+
+$('#shared').click(function () {
+  var flex = getJSON();
+  if (flex) {
+    if (JSON.stringify(flex).indexOf('{{share}}') > -1 && !flexid) {
+      Swal.fire({
+        icon: 'error',
+        title: 'หากกำหนดให้มีคีย์เวิร์ด share คุณจำเป็นที่จะต้องบันทึก Flex นี้ก่อนการแชร์',
+      });
+      return false;
+    }
+    sendShare(flex);
+  }
+});
+
+$('#send').click(function () {
+  var flex = getJSON();
+  if (flex) {
+    if (JSON.stringify(flex).indexOf('{{share}}') > -1 && !flexid) {
+      Swal.fire({
+        icon: 'error',
+        title: 'หากกำหนดให้มีคีย์เวิร์ด share คุณจำเป็นที่จะต้องบันทึก Flex นี้ก่อนการแชร์',
+      });
+      return false;
+    }
+    sendInChat(flex);
+  }
+});
+
+$('#save').click(function () {
+  let flex = getJSON();
+  if (flex) {
+    Swal.fire({
+      title: 'กรุณาใส่ชื่อ FLEX',
+      input: 'text',
+      inputAttributes: {
+        autocapitalize: 'off'
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Save',
+      showLoaderOnConfirm: true,
+      preConfirm: (templateName) => {
+        return $.post(scripturl, {
+          q: 'put',
           isSquare: profile.isSquare,
-          id: id,
+          name: templateName,
           flex: JSON.stringify(flex),
-          uid: liff.getDecodedIDToken().sub,
+          uid: profile.userId,
           liff_id: liff.id
-        }, function (output) {
-          if (output.status == 200) {
-            let delbtn = $(`#${id}`)
-            $(delbtn).closest('ul').find('.show-preview p').html(JSON.stringify(flex));
-            $(delbtn).closest('ul').find('.show-json p').html(JSON.stringify(flex));
-            $('#json').val(JSON.stringify(flex, undefined, 4)).change()
-            setButtonEventListener()
-            Swal.fire({
-              icon: 'success',
-              title: 'อัพเดทเรียบร้อย',
-              showConfirmButton: false,
-              timer: 1500
-            })
-          } else {
-            Swal.fire({
-              icon: 'error',
-              title: 'อัพเดทไม่สำเร็จ',
-              text: output.error,
-              showConfirmButton: false,
-              timer: 1500
-            })
-          }
-        })
-      }
-    }
-    function getFlex() {
-      $('#flexlist').LoadingOverlay("show");
-      let uid = profile.userId;
-      
-      $.post(scripturl, {
-        q: 'get',
-        isSquare: profile.isSquare,
-        uid: uid
-      }).done(function (result) {
-        $('#flexlist').LoadingOverlay("hide");
-        if (result.status != 200) {
-          return true
-        }
-        flexlist = result.data
-        
-        if (flexlist.length > 0) {
-
-          $('#flexlist').html('');
-
-          flexlist.forEach(function (item, index) {
-            
-
-            let row = $('.listtemplate').clone()
-
-            $(row).removeClass('hide listtemplate')
-
-            $(row).find('.btn-head').text(item.name)
-
-            $(row).find('.show-preview').append(`<p style="display: none">${item.flex}</p>`);
-
-            $(row).find('.delete-list').attr('id', item.flex_id)
-
-            $(row).find('.show-json').append(`<p style="display: none">${item.flex}</p>`);
-            $(row).find('.share-link').attr('data-clipboard-text', 'https://liff.line.me/' + liff.id + '?s=' + item.flex_id)
-            $('#flexlist').append(row)
-
-          })
-
-        } else {
-
-          $('#flexlist').css('height', '100%')
-
-        }
-
-        setButtonEventListener()
-
-      })
-    }
-    function getJSON(noerror = false) {
-      let json = $('#json').val()
-
-      try {
-        json = JSON.parse($('#json').val())
-      } catch (error) {
-        if (!noerror) {
-          Swal.fire({
-            icon: 'error',
-            title: 'Oops...',
-            text: 'Invalid JSON'
-          })
-        }
-        return false
-      }
-      let flex
-      if (json.type != 'flex') {
-        let altText = $('#altText').val()
-        if (altText == '') altText = 'FLEX MESSAGE'
-        flex = {
-          type: 'flex',
-          altText: $('#altText').val(),
-          contents: json
-        }
-      } else {
-        flex = json
-      }
-      return flex
-    }
-
-    // function getAction(json) {
-    //     Object.keys(json).forEach(function (key) {
-    //         if (key == 'action') {
-    //             
-    //         } else if (typeof json[key] === 'object') {
-    //             getAction(json[key])
-    //         }
-    //     })
-    // }
-
-    async function sendShare(flex) {
-      const result = await liff.shareTargetPicker([flex]);
-      if (result) {
-        Swal.fire({
-          icon: 'success',
-          title: 'ส่งข้อความสำเร็จ',
+        });
+      },
+      allowOutsideClick: () => !Swal.isLoading()
+    }).then((output) => {
+      if (output.value.result == 'duplicate') {
+        return Swal.fire({
+          icon: 'warning',
+          title: 'Oops...',
+          text: 'ชื่อซ้ำ',
           showConfirmButton: false,
           timer: 1500
-        })
-        if (flexid) {
-          liff.closeWindow()
-        }
+        });
+      }
+      let item = output.value.data;
+      let row = createFlexListItem({
+        flex_id: item[0],
+        name: item[1],
+        flex: item[2]
+      });
+      $('#flexlist').append(row);
+      setButtonEventListener();
+      Swal.fire({
+        icon: 'success',
+        title: 'บันทึกเรียบร้อย',
+        showConfirmButton: false,
+        timer: 1500
+      });
+    });
+  }
+});
+
+function update(id) {
+  let flex;
+  try {
+    flex = JSON.parse($('#flex1').find('textarea').val());
+  } catch (error) {
+    console.log(error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Oops...',
+      text: 'Invalid JSON'
+    });
+    return false;
+  }
+  if (flex) {
+    Swal.fire({
+      icon: 'info',
+      title: 'กำลังอัพเดท JSON...',
+      text: 'กรุณารอสักครู่',
+      allowOutsideClick: false,
+    });
+    Swal.showLoading(Swal.getConfirmButton());
+    $.post(scripturl, {
+      q: 'update',
+      isSquare: profile.isSquare,
+      id: id,
+      flex: JSON.stringify(flex),
+      uid: liff.getDecodedIDToken().sub,
+      liff_id: liff.id
+    }, function (output) {
+      if (output.status == 200) {
+        let delbtn = $(`#${id}`);
+        $(delbtn).closest('ul').find('.show-preview p').html(JSON.stringify(flex));
+        $(delbtn).closest('ul').find('.show-json p').html(JSON.stringify(flex));
+        $('#json').val(JSON.stringify(flex, undefined, 4)).change();
+        setButtonEventListener();
+        Swal.fire({
+          icon: 'success',
+          title: 'อัพเดทเรียบร้อย',
+          showConfirmButton: false,
+          timer: 1500
+        });
       } else {
-        const [majorVer, minorVer, patchVer] = (
-          liff.getLineVersion() || ''
-        ).split('.');
-        if (minorVer === undefined) {
-          console.log('ShareTargetPicker was canceled in external browser');
-          if (flexid) {
-            liff.closeWindow()
-          }
-          return;
-        }
-        if (
-          parseInt(majorVer) >= 10 &&
-          parseInt(minorVer) >= 10 &&
-          parseInt(patchVer) > 0
-        ) {
-          console.log('ShareTargetPicker was canceled in LINE app');
-          if (flexid) {
-            liff.closeWindow()
-          }
-        }
+        Swal.fire({
+          icon: 'error',
+          title: 'อัพเดทไม่สำเร็จ',
+          text: output.error,
+          showConfirmButton: false,
+          timer: 1500
+        });
+      }
+    });
+  }
+}
+
+function getJSON(noerror = false) {
+  let json = $('#json').val();
+  try {
+    json = JSON.parse($('#json').val());
+  } catch (error) {
+    if (!noerror) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: 'Invalid JSON'
+      });
+    }
+    return false;
+  }
+  let flex;
+  if (json.type != 'flex') {
+    let altText = $('#altText').val();
+    if (altText == '') altText = 'FLEX MESSAGE';
+    flex = {
+      type: 'flex',
+      altText: $('#altText').val(),
+      contents: json
+    };
+  } else {
+    flex = json;
+  }
+  return flex;
+}
+
+async function sendShare(flex) {
+  const result = await liff.shareTargetPicker([flex]);
+  if (result) {
+    Swal.fire({
+      icon: 'success',
+      title: 'ส่งข้อความสำเร็จ',
+      showConfirmButton: false,
+      timer: 1500
+    });
+    if (flexid) {
+      liff.closeWindow();
+    }
+  } else {
+    const [majorVer, minorVer, patchVer] = (liff.getLineVersion() || '').split('.');
+    if (minorVer === undefined) {
+      console.log('ShareTargetPicker was canceled in external browser');
+      if (flexid) {
+        liff.closeWindow();
+      }
+      return;
+    }
+    if (parseInt(majorVer) >= 10 && parseInt(minorVer) >= 10 && parseInt(patchVer) > 0) {
+      console.log('ShareTargetPicker was canceled in LINE app');
+      if (flexid) {
+        liff.closeWindow();
       }
     }
-    async function sendInChat(flex) {
-      liff.sendMessages([flex])
-        .then(() => {
-          Swal.fire({
-            icon: 'success',
-            title: 'ส่งข้อความสำเร็จ',
-            showConfirmButton: false,
-            timer: 1500
-          }).then(() => {
-            if (flexid) {
-              liff.closeWindow()
-            }
-          })
-        })
-        .catch((err) => {
-          console.log("error", err);
-          Swal.fire({
-            icon: 'error',
-            title: 'Oops...',
-            text: 'ไม่สามารถส่งข้อความได้'
-          })
-        });
-    }
+  }
+}
+
+async function sendInChat(flex) {
+  liff.sendMessages([flex])
+    .then(() => {
+      Swal.fire({
+        icon: 'success',
+        title: 'ส่งข้อความสำเร็จ',
+        showConfirmButton: false,
+        timer: 1500
+      }).then(() => {
+        if (flexid) {
+          liff.closeWindow();
+        }
+      });
+    })
+    .catch((err) => {
+      console.log("error", err);
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: 'ไม่สามารถส่งข้อความได้'
+      });
+    });
+}
+
+function setButtonEventListener() {
+  $('.btn-head').off('click').click(function () {
+    let json = $(this).parent().find('ul').find('.show-json p').text();
+    $('#json').val(JSON.stringify(JSON.parse(json), undefined, 4));
+    setTimeout(() => {
+      $('#json').trigger('input');
+    }, 200);
+    $('#altText').val($(this).text());
+    $('#flex-show').html('');
+  });
     function setButtonEventListener() {
       $('.btn-head').off('click').click(function () {
         let json = $(this).parent().find('ul').find('.show-json p').text()
